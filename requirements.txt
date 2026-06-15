@@ -1,0 +1,6 @@
+streamlit
+streamlit-option-menu
+st-gsheets-connection
+pandas
+plotly
+fpdf

@@ -1,0 +1,7 @@
+arya.db
+.DS_Store
+__pycache__/
+*.log
+.streamlit/
+numbra.db
+numbra_db.py
