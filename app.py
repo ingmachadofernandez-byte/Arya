@@ -1,260 +1,243 @@
 import streamlit as st
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 
-# Configuración de página con estilo limpio/oscuro responsivo
-st.set_page_config(page_title="ARYA OS", page_icon="🤖", layout="centered")
+# 1. CONFIGURACIÓN PREMIUM OPTIMIZADA PARA MÓVIL
+st.set_page_config(page_title="ARYA OS", page_icon="📱", layout="centered")
 
-# Ocultar menús innecesarios para estética limpia
 st.markdown("""
     <style>
+    .block-container {
+        max-width: 420px !important;
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        margin: 0 auto !important;
+        background-color: #FFFFFF;
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+        border-radius: 24px;
+    }
+    body { background-color: #F6F8FA !important; }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .stButton>button {width: 100%; border-radius: 10px;}
+    
+    h1 { font-size: 24px !important; font-family: '-apple-system', BlinkMacSystemFont, sans-serif; font-weight: 800; color: #1A1A1A; text-align: center; margin-bottom: 5px !important; }
+    h2 { font-size: 20px !important; font-weight: 700; color: #1A1A1A; }
+    h3 { font-size: 16px !important; font-weight: 700; color: #1A1A1A; margin-top: 15px !important; }
+    h4 { font-size: 14px !important; font-weight: 600; margin: 0 !important; }
+    p, label, .stMarkdown { font-size: 13px !important; color: #666666; }
+    
+    .stNumberInput div div input { padding: 6px 10px !important; font-size: 14px !important; border-radius: 8px !important; }
+    .stTextInput div div input { padding: 6px 10px !important; font-size: 14px !important; border-radius: 8px !important; }
+    
+    .stButton>button { background-color: #4A90E2; color: white; border-radius: 10px; width: 100%; font-weight: bold; font-size: 14px !important; padding: 10px !important; border: none; }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# 1. CONEXIÓN Y CREACIÓN DE BASE DE DATOS (ARYA.DB)
+# 2. ARQUITECTURA DE BASE DE DATOS (CON TABLA DE SUEÑOS PARAMETRIZABLES)
 def init_db():
-    try:
-        conn = sqlite3.connect('arya.db')
-        c = conn.cursor()
-        # Tabla para Compromisos del mes
-        c.execute('''CREATE TABLE IF NOT EXISTS compromisos 
-                     (mes_anio TEXT, arriendo INTEGER DEFAULT 0, servicios INTEGER DEFAULT 0, 
-                      tarjeta INTEGER DEFAULT 0, diezmo INTEGER DEFAULT 0, mami INTEGER DEFAULT 0, 
-                      PRIMARY KEY(mes_anio))''')
-        # Tabla para la lista de mercado
-        c.execute('''CREATE TABLE IF NOT EXISTS mercado 
-                     (id INTEGER PRIMARY KEY AUTOINCREMENT, item TEXT, comprado INTEGER DEFAULT 0)''')
-        # Tabla para Habitos diarios
-        c.execute('''CREATE TABLE IF NOT EXISTS habitos_diarios 
-                     (fecha DATE PRIMARY KEY, ejercicio INTEGER DEFAULT 0, mercado INTEGER DEFAULT 0, meditacion INTEGER DEFAULT 0)''')
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        pass
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS compromisos
+                 (mes_anio TEXT PRIMARY KEY, arriendo INTEGER DEFAULT 0, servicios INTEGER DEFAULT 0,
+                  tarjeta INTEGER DEFAULT 0, diezmo INTEGER DEFAULT 0, mami INTEGER DEFAULT 0, comida INTEGER DEFAULT 0)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS ingresos
+                 (mes_anio TEXT, fuente TEXT, valor INTEGER, PRIMARY KEY (mes_anio, fuente))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS mercado
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT, item TEXT, comprado INTEGER DEFAULT 0)''')
+    
+    # NUEVA TABLA: Parametrizar los sueños de cada usuario
+    c.execute('''CREATE TABLE IF NOT EXISTS suenos
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT UNIQUE)''')
+    
+    # Insertar valores por defecto la primera vez para que no aparezca vacío
+    c.execute("INSERT OR IGNORE INTO suenos (nombre) VALUES ('✈️ Viajar')")
+    c.execute("INSERT OR IGNORE INTO suenos (nombre) VALUES ('📚 Estudiar')")
+    
+    conn.commit()
+    conn.close()
 
 init_db()
 
-# Lógicas para Hábitos Diarios
-def get_habitos_diarios_hoy():
-    fecha_hoy = str(date.today())
-    try:
-        conn = sqlite3.connect('arya.db')
-        c = conn.cursor()
-        c.execute("SELECT ejercicio, mercado, meditacion FROM habitos_diarios WHERE fecha=?", (fecha_hoy,))
-        res = c.fetchone()
-        if not res:
-            # Inicializar para el día de hoy
-            c.execute("INSERT OR IGNORE INTO habitos_diarios (fecha, ejercicio, mercado, meditacion) VALUES (?, 0, 0, 0)", (fecha_hoy,))
-            conn.commit()
-            conn.close()
-            return 0, 0, 0
-        conn.close()
-        return res[0], res[1], res[2]
-    except Exception as e:
-        return 0, 0, 0
-
-def update_habito_hoy(campo, valor):
-    fecha_hoy = str(date.today())
-    try:
-        conn = sqlite3.connect('arya.db')
-        c = conn.cursor()
-        c.execute("INSERT OR IGNORE INTO habitos_diarios (fecha, ejercicio, mercado, meditacion) VALUES (?, 0, 0, 0)", (fecha_hoy,))
-        c.execute(f"UPDATE habitos_diarios SET {campo}=? WHERE fecha=?", (valor, fecha_hoy))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        pass
-
-# Lógicas de consulta para Compromisos (Blindada contra valores None)
-def get_compromisos():
+# LÓGICAS DE OPERACIÓN
+def guardar_ingreso(fuente, valor):
     mes_actual = date.today().strftime("%Y-%m")
     conn = sqlite3.connect('arya.db')
     c = conn.cursor()
-    c.execute("SELECT arriendo, servicios, tarjeta, diezmo, mami FROM compromisos WHERE mes_anio=?", (mes_actual,))
-    res = c.fetchone()
-    conn.close()
-    
-    # Si encuentra el registro, nos aseguramos de convertir cualquier valor en 1 o 0
-    if res:
-        return [1 if x == 1 else 0 for x in res]
-    return [0, 0, 0, 0, 0]
-
-def update_compromiso(campo, valor):
-    mes_actual = date.today().strftime("%Y-%m")
-    conn = sqlite3.connect('arya.db')
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO compromisos (mes_anio) VALUES (?)", (mes_actual,))
-    c.execute(f"UPDATE compromisos SET {campo}=? WHERE mes_anio=?", (valor, mes_actual))
+    c.execute('INSERT OR REPLACE INTO ingresos (mes_anio, fuente, valor) VALUES (?, ?, ?)', (mes_actual, fuente, valor))
     conn.commit()
     conn.close()
 
-# Lógicas para el Mercado
-def get_mercado():
+def obtener_ingresos_mes(mes):
     conn = sqlite3.connect('arya.db')
     c = conn.cursor()
-    c.execute("SELECT id, item, comprado FROM mercado")
-    items = c.fetchall()
+    c.execute("SELECT fuente, valor FROM ingresos WHERE mes_anio = ?", (mes,))
+    filas = c.fetchall()
     conn.close()
-    return items
+    return {fuente: valor for fuente, valor in filas}
 
-def add_item_mercado(item):
-    if item:
+def calcular_comparativa_ingresos():
+    mes_actual = date.today().strftime("%Y-%m")
+    mes_anterior = (date.today() - timedelta(days=30)).strftime("%Y-%m")
+    ingresos_actuales = obtener_ingresos_mes(mes_actual)
+    ingresos_anteriores = obtener_ingresos_mes(mes_anterior)
+    comparativa = {}
+    for fuente, valor_actual in ingresos_actuales.items():
+        valor_anterior = ingresos_anteriores.get(fuente, 0)
+        comparativa[fuente] = {"actual": valor_actual, "anterior": valor_anterior, "diferencia": valor_actual - valor_anterior}
+    return comparativa
+
+def guardar_gasto_hormiga(item, valor):
+    fecha_actual = date.today().strftime("%Y-%m-%d")
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO mercado (fecha, item, comprado) VALUES (?, ?, ?)', (fecha_actual, item, valor))
+    conn.commit()
+    conn.close()
+
+def obtener_gastos_hormiga_semana():
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    siete_dias_atras = (date.today() - timedelta(days=7)).strftime("%Y-%m-%d")
+    c.execute("SELECT SUM(comprado) FROM mercado WHERE fecha >= ?", (siete_dias_atras,))
+    total = c.fetchone()[0]
+    conn.close()
+    return total if total else 0
+
+# NUEVAS LÓGICAS PARA CONTROL DE SUEÑOS
+def obtener_suenos():
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute("SELECT nombre FROM suenos")
+    lista = [fila[0] for fila in c.fetchall()]
+    conn.close()
+    return lista
+
+def agregar_nuevo_sueno(nombre):
+    if nombre:
         conn = sqlite3.connect('arya.db')
         c = conn.cursor()
-        c.execute("INSERT INTO mercado (item) VALUES (?)", (item,))
+        c.execute("INSERT OR IGNORE INTO suenos (nombre) VALUES (?)", (nombre,))
         conn.commit()
         conn.close()
 
-def toggle_mercado(item_id, comprado):
+def borrar_suenos():
     conn = sqlite3.connect('arya.db')
     c = conn.cursor()
-    c.execute("UPDATE mercado SET comprado=? WHERE id=?", (1 if comprado else 0, item_id))
+    c.execute("DELETE FROM suenos")
     conn.commit()
     conn.close()
 
-def limpiar_mercado():
-    conn = sqlite3.connect('arya.db')
-    c = conn.cursor()
-    c.execute("DELETE FROM mercado")
-    conn.commit()
-    conn.close()
+# 3. INTERFAZ EN CUADRO MÓVIL
+st.markdown("<h1>📱 ARYA OS</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; margin-bottom: 20px;'>Tu Dinero, Tus Reglas ✨</p>", unsafe_allow_html=True)
 
-# 2. INTERFAZ EN UNA SOLA COLUMNA (MOBILE-FIRST)
-st.title("🤖 ARYA OS")
-st.subheader("Tu Asistente de Paz Mental")
-
-# Saludo empático de ARYA
-st.info("👋 Hola Norma. Tranquila, yo me encargo de recordar los pendientes importantes por ti. Enfócate en tu día, que tu mente está a salvo conmigo.")
-
-# --- SECCIÓN: HÁBITOS DE HOY ---
-st.markdown("### 🎯 Hábitos de Hoy")
-ejercicio, mercado, meditacion = get_habitos_diarios_hoy()
-
-opciones = ["🏃‍♀️ Hice Ejercicio", "🛒 Hice Mercado", "🧘‍♀️ Medité"]
-seleccion_default = []
-if ejercicio == 1:
-    seleccion_default.append("🏃‍♀️ Hice Ejercicio")
-if mercado == 1:
-    seleccion_default.append("🛒 Hice Mercado")
-if meditacion == 1:
-    seleccion_default.append("🧘‍♀️ Medité")
-
-# Mostrar las píldoras
-seleccionados = st.pills(
-    "Selecciona los hábitos completados hoy:",
-    options=opciones,
-    selection_mode="multi",
-    default=seleccion_default,
-    label_visibility="collapsed",
-    key="habitos_hoy_pills"
-)
-
-# Detectar cambios y actualizar
-nuevo_ejercicio = 1 if "🏃‍♀️ Hice Ejercicio" in seleccionados else 0
-nuevo_mercado = 1 if "🛒 Hice Mercado" in seleccionados else 0
-nuevo_meditacion = 1 if "🧘‍♀️ Medité" in seleccionados else 0
-
-# Si hay diferencias, actualizar inmediatamente y recargar
-if (nuevo_ejercicio != ejercicio) or (nuevo_mercado != mercado) or (nuevo_meditacion != meditacion):
-    if nuevo_ejercicio != ejercicio:
-        update_habito_hoy("ejercicio", nuevo_ejercicio)
-    if nuevo_mercado != mercado:
-        update_habito_hoy("mercado", nuevo_mercado)
-    if nuevo_meditacion != meditacion:
-        update_habito_hoy("meditacion", nuevo_meditacion)
-    st.rerun()
-
-# Caja de Resumen Diario de ARYA
-completados_habitos = nuevo_ejercicio + nuevo_mercado + nuevo_meditacion
-if completados_habitos == 0:
-    resumen_text = "Hola Norma, tu día está comenzando. ¿Qué hábito vamos a dominar hoy? 🌟"
-else:
-    consejos = []
-    if nuevo_ejercicio == 1:
-        consejos.append("el ejercicio físico 🏃‍♀️")
-    if nuevo_mercado == 1:
-        consejos.append("abastecer el hogar con el mercado 🛒")
-    if nuevo_meditacion == 1:
-        consejos.append("cuidar tu mente con la meditación 🧘‍♀️")
+# PARAMETRIZACIÓN: Configurar Sueños (Oculto en un acordeón casual)
+with st.expander("⚙️ Personalizar mis Tarjetas de Sueños"):
+    nuevo_s = st.text_input("Añade un nuevo sueño:", placeholder="Ej. 🚗 Cambiar Carro, 🏠 Casa propia...")
+    if st.button("➕ Crear Tarjeta"):
+        agregar_nuevo_sueno(nuevo_s)
+        st.success(f"¡Tarjeta '{nuevo_s}' creada!")
     
-    if completados_habitos == 1:
-        resumen_text = f"¡Excelente inicio, Norma! Ya completaste {consejos[0]}. ¡Un gran paso para tu bienestar!"
-    elif completados_habitos == 2:
-        resumen_text = f"¡Sensacional, Norma! Llevas 2 hábitos completados ({' y '.join(consejos)}). ¡Estás muy cerca de lograr un día perfecto!"
+    if st.button("🗑️ Reiniciar todas las tarjetas"):
+        borrar_suenos()
+        st.info("Tarjetas borradas. Agrega las tuyas.")
+
+st.divider()
+
+# SECCIÓN: INGRESOS
+st.markdown("### 💰 Mis Motores (Ingresos)")
+col1, col2 = st.columns(2)
+with col1:
+    ingreso_t1 = st.number_input("💼 Trabajo 1", min_value=0, value=3500000, step=50000)
+    guardar_ingreso("Trabajo 1", ingreso_t1)
+with col2:
+    ingreso_t2 = st.number_input("🚀 Trabajo 2", min_value=0, value=1800000, step=50000)
+    guardar_ingreso("Trabajo 2", ingreso_t2)
+
+total_ingresos = ingreso_t1 + ingreso_t2
+
+datos_comp = calcular_comparativa_ingresos()
+comp1 = datos_comp.get("Trabajo 1", {"anterior": 0, "diferencia": 0})
+comp2 = datos_comp.get("Trabajo 2", {"anterior": 0, "diferencia": 0})
+
+col_c1, col_c2 = st.columns(2)
+with col_c1:
+    st.metric(label="T1 vs mes anterior", value=f"${ingreso_t1:,}", delta=f"${comp1['diferencia']:,}" if comp1['anterior'] > 0 else "Nuevo")
+with col_c2:
+    st.metric(label="T2 vs mes anterior", value=f"${ingreso_t2:,}", delta=f"${comp2['diferencia']:,}" if comp2['anterior'] > 0 else "Nuevo")
+
+st.divider()
+
+# SECCIÓN: GASTOS BÁSICOS
+st.markdown("### 🛡️ Gastos Básicos (Validación)")
+arriendo = st.number_input("🏠 Arriendo de la casa", min_value=0, value=1200000)
+servicios = st.number_input("💧 Servicios Públicos", min_value=0, value=350000)
+tarjetas = st.number_input("💳 Tarjetas de Crédito", min_value=0, value=450000)
+comida = st.number_input("🍏 Mercado General", min_value=0, value=600000)
+mami_diezmo = st.number_input("🙏 Mami & Diezmo", min_value=0, value=500000)
+
+total_gastos = arriendo + servicios + tarjetas + comida + mami_diezmo
+
+st.divider()
+
+# SECCIÓN: SALDO Y SUEÑOS PARAMETRIZADOS
+lista_suenos = obtener_suenos()
+
+if total_ingresos >= total_gastos:
+    saldo_libertad = total_ingresos - total_gastos
+    
+    st.success("🛡️ Gastos Básicos Asegurados.")
+    st.markdown("<h3 style='text-align:center; margin:0;'>💸 Saldo de Libertad</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align:center; color:#4A90E2; margin-top:0;'>$ {saldo_libertad:,}</h2>", unsafe_allow_html=True)
+    
+    st.markdown("### ✈️ Banco de Sueños")
+    
+    # Generar Sliders de manera dinámica según los sueños parametrizados
+    porcentajes = {}
+    if not lista_suenos:
+        st.warning("No tienes tarjetas de sueños creadas. Despliega la configuración de arriba ⚙️ para crear una.")
     else:
-        resumen_text = "¡Día extraordinario, Norma! Completaste el ejercicio, el mercado y la meditación. 👑 ¡Hoy has dominado tu día al 100%!"
-
-st.info(f"🤖 **ARYA:** {resumen_text}")
-st.markdown("---")
-
-# --- SECCIÓN 1: COMPROMISOS SAGRADOS ---
-st.markdown("### 🚨 Mi Paz Mental (Pagos del Mes)")
-
-comp = get_compromisos()
-arriendo_check = comp[0] == 1
-servicios_check = comp[1] == 1
-tarjeta_check = comp[2] == 1
-diezmo_check = comp[3] == 1
-mami_check = comp[4] == 1
-
-# Contador de tranquilidad
-completados = sum(comp)
-st.metric(label="Compromisos Liberados", value=f"{completados} de 5")
-
-# Checkboxes interactivos
-if st.checkbox("🏠 Pagar el Arriendo de la casa", value=arriendo_check):
-    if not arriendo_check: update_compromiso("arriendo", 1); st.rerun()
-else:
-    if arriendo_check: update_compromiso("arriendo", 0); st.rerun()
-
-if st.checkbox("⚡ Pagar los Servicios Públicos", value=servicios_check):
-    if not servicios_check: update_compromiso("servicios", 1); st.rerun()
-else:
-    if servicios_check: update_compromiso("servicios", 0); st.rerun()
-
-if st.checkbox("💳 Pagar la Tarjeta de Crédito", value=tarjeta_check):
-    if not tarjeta_check: update_compromiso("tarjeta", 1); st.rerun()
-else:
-    if tarjeta_check: update_compromiso("tarjeta", 0); st.rerun()
-
-if st.checkbox("⛪ Dar el Diezmo de la Iglesia", value=diezmo_check):
-    if not diezmo_check: update_compromiso("diezmo", 1); st.rerun()
-else:
-    if diezmo_check: update_compromiso("diezmo", 0); st.rerun()
-
-if st.checkbox("❤️ Enviarle el dinero a mi Mami", value=mami_check):
-    if not mami_check: update_compromiso("mami", 1); st.rerun()
-else:
-    if mami_check: update_compromiso("mami", 0); st.rerun()
-
-st.markdown("---")
-
-# --- SECCIÓN 2: LISTA DE MERCADO FLASH ---
-st.markdown("### 🛒 Mi Lista de Mercado Rápida")
-
-# Formulario para añadir ítem
-nuevo_item = st.text_input("¿Qué necesitas comprar hoy?", placeholder="Ej. Huevos, Leche, Café...", label_visibility="collapsed")
-if st.button("➕ Agregar al mercado"):
-    if nuevo_item:
-        add_item_mercado(nuevo_item)
-        st.rerun()
-
-# Mostrar ítems actuales del mercado
-items_mercado = get_mercado()
-if items_mercado:
-    for item_id, nombre, comprado in items_mercado:
-        check_val = comprado == 1
-        if st.checkbox(f"{'✅ (Comprado) ' if check_val else ''}{nombre}", value=check_val, key=f"mercado_{item_id}"):
-            if not check_val: toggle_mercado(item_id, True); st.rerun()
+        for sueno in lista_suenos:
+            porcentajes[sueno] = st.slider(f"{sueno} (%)", min_value=0, max_value=100, value=100 // len(lista_suenos))
+        
+        total_porc = sum(porcentajes.values())
+        
+        if total_porc > 100:
+            st.error(f"⚠️ Te pasaste del 100% disponible. (Llevas el {total_porc}%)")
+        elif any(v == 100 for v in porcentajes.values()) and len(lista_suenos) > 1:
+            st.warning("⚠️ ¡Repartir es vivir! No le dejes todo a una sola tarjeta. 😉")
         else:
-            if check_val: toggle_mercado(item_id, False); st.rerun()
+            # Renderizar las tarjetas dinámicas en base a lo que el usuario creó
+            columnas = st.columns(len(lista_suenos))
+            colores = ["#1A1A1A", "#4A90E2", "#2ECC71", "#9B59B6", "#E67E22"] # Paleta premium cambiante
             
-    if st.button("🗑️ Vaciar toda la lista"):
-        limpiar_mercado()
-        st.rerun()
-else:
-    st.caption("No tienes productos anotados. ARYA guardará aquí lo que recuerdes para que no se te olvide en el supermercado.")
+            for i, sueno in enumerate(lista_suenos):
+                dinero_asignado = int(saldo_libertad * (porcentajes[sueno] / 100))
+                color = colores[i % len(colores)]
+                with columnas[i]:
+                    st.markdown(f"""
+                    <div style='background-color: {color}; padding: 12px; border-radius: 12px; color: white; text-align:center; margin-bottom:10px;'>
+                        <h4 style='font-size:12px !important;'>{sueno}</h4>
+                        <h3 style='color:white !important; font-size:16px !important; margin:5px 0 0 0 !important;'>${dinero_asignado:,}</h3>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+st.divider()
+
+# SECCIÓN: GASTO HORMIGA (OPCIÓN B)
+st.markdown("### 🐜 Captura Express Diaria")
+col_h1, col_h2 = st.columns([1.5, 1])
+with col_h1:
+    nombre_hormiga = st.text_input("¿Qué compraste?", placeholder="Café, Uber...", key="hormiga_item")
+with col_h2:
+    valor_hormiga = st.number_input("¿Cuánto?", min_value=0, value=0, step=1000, key="hormiga_valor")
+
+if st.button("⚡ Registrar Gasto Rápido") and valor_hormiga > 0:
+    guardar_gasto_hormiga(nombre_hormiga, valor_hormiga)
+    st.toast(f"¡{nombre_hormiga} registrado! ☕")
+
+gasto_semanal_acumulado = obtener_gastos_hormiga_semana()
+st.info(f"📊 **Control:** Llevas **${gasto_semanal_acumulado:,}** en antojos los últimos 7 días. ¡Control! 😉")
