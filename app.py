@@ -336,3 +336,5 @@ with col_m3:
     if st.button("🌱 Core"): st.session_state.menu_móvil = "🌱 Core"; st.rerun()
 with col_m4:
     if st.button("✨ Anchor"): st.session_state.menu_móvil = "✨ Anchor"; st.rerun()
+
+# Despliegue UX Bancolombia
