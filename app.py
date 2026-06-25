@@ -58,10 +58,95 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS despensa (id INTEGER PRIMARY KEY AUTOINCREMENT, producto TEXT, faltante INTEGER DEFAULT 1)''')
     c.execute('''CREATE TABLE IF NOT EXISTS salud_control (fecha TEXT PRIMARY KEY, ejercicio INTEGER DEFAULT 0, nivel_estres TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS agenda (id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT, bloque TEXT, actividad TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS proyectos_eventos (id INTEGER PRIMARY KEY AUTOINCREMENT, proyecto TEXT, titulo TEXT, fecha TEXT, tipo TEXT)''')
     conn.commit()
     conn.close()
 
 init_db()
+
+# --- FUNCIONES DE CALENDARIO, HÁBITOS Y FINANZAS ---
+def calcular_racha_ejercicio():
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT fecha, ejercicio FROM salud_control ORDER BY fecha DESC')
+    filas = c.fetchall()
+    conn.close()
+    
+    racha = 0
+    hoy = date.today()
+    for i in range(30):
+        dia_verificar = (hoy - timedelta(days=i)).strftime("%Y-%m-%d")
+        ejercicio_dia = 0
+        for f, ej in filas:
+            if f == dia_verificar:
+                ejercicio_dia = ej
+                break
+        if ejercicio_dia == 1:
+            racha += 1
+        else:
+            if i > 0:
+                break
+            if i == 0:
+                continue
+            else:
+                break
+    return racha
+
+def obtener_historial_ejercicio_emojis():
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT fecha, ejercicio FROM salud_control ORDER BY fecha DESC LIMIT 7')
+    filas = c.fetchall()
+    conn.close()
+    
+    hoy = date.today()
+    emojis = []
+    for i in range(6, -1, -1):
+        dia = hoy - timedelta(days=i)
+        dia_str = dia.strftime("%Y-%m-%d")
+        hecho = False
+        for f, ej in filas:
+            if f == dia_str and ej == 1:
+                hecho = True
+                break
+        emojis.append("🟢" if hecho else "⚪")
+    return " ".join(emojis)
+
+def obtener_eventos_calendario():
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT proyecto, titulo, fecha, tipo FROM proyectos_eventos ORDER BY fecha ASC')
+    filas = c.fetchall()
+    conn.close()
+    return filas
+
+def populate_sample_events():
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT COUNT(*) FROM proyectos_eventos')
+    if c.fetchone()[0] == 0:
+        hoy = date.today()
+        eventos = [
+            ('💼 Alcaldía', 'Entrega de Informe Ejecutivo', (hoy + timedelta(days=2)).strftime("%Y-%m-%d"), 'Hito'),
+            ('🌟 PMO Hub', 'Reunión de Alineación Semanal', (hoy + timedelta(days=4)).strftime("%Y-%m-%d"), 'Reunión'),
+            ('💼 Alcaldía', 'Comité Técnico Distrital', (hoy + timedelta(days=12)).strftime("%Y-%m-%d"), 'Hito'),
+            ('🌟 PMO Hub', 'Cierre Financiero Mensual', (hoy + timedelta(days=20)).strftime("%Y-%m-%d"), 'Entregable'),
+            ('💼 Alcaldía', 'Planeación Anual de Inversiones', (hoy + timedelta(days=45)).strftime("%Y-%m-%d"), 'Hito')
+        ]
+        c.executemany('INSERT INTO proyectos_eventos (proyecto, titulo, fecha, tipo) VALUES (?, ?, ?, ?)', eventos)
+        conn.commit()
+    conn.close()
+
+def obtener_total_ingresos():
+    mes_actual = date.today().strftime("%Y-%m")
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT SUM(valor) FROM ingresos WHERE mes_anio = ?', (mes_actual,))
+    res = c.fetchone()[0]
+    conn.close()
+    return res if res else (3500000 + 1800000)
+
+populate_sample_events()
 
 # --- LÓGICAS COMERCIALES ---
 def guardar_ingreso(fuente, valor):
@@ -203,7 +288,7 @@ def obtener_ultimo_aprendizaje():
 
 # --- MANEJO DE ESTADO DE NAVEGACIÓN (BOTTOM BAR SIMULATION) ---
 if "menu_móvil" not in st.session_state:
-    st.session_state.menu_móvil = "⚡ Inicio"
+    st.session_state.menu_móvil = "🌿 Mi Día"
 
 # 3. INTERFAZ MÓVIL EVOLUCIONADA
 st.markdown("<h1>📱 ARYA OS</h1>", unsafe_allow_html=True)
@@ -216,40 +301,117 @@ st.divider()
 # ==========================================
 # VISTA: INICIO (DASHBOARD COMPACTO)
 # ==========================================
-if st.session_state.menu_móvil == "⚡ Inicio":
+if st.session_state.menu_móvil == "🌿 Mi Día":
     st.markdown("### Hola, Norma ✨")
-    st.caption("Tu vista unificada de control:")
+    st.caption("Tu control de hoy (Estilo Bancolombia):")
     
-    # MOSAICO ACCESOS DIRECTOS (Estilo Círculos de Bancolombia)
-    st.markdown("""
-    <div class="circle-menu">
-        <div class="circle-item"><div class="circle-icon" style="background-color:#FFEAA7;">💼</div>Motores</div>
-        <div class="circle-item"><div class="circle-icon" style="background-color:#55E6C1;">🏃</div>Core</div>
-        <div class="circle-item"><div class="circle-icon" style="background-color:#D6A2E8;">⚓</div>Anchor</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # 1. Tarjeta Hábitos
+    hoy_str = date.today().strftime("%Y-%m-%d")
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT ejercicio FROM salud_control WHERE fecha = ?', (hoy_str,))
+    res_hoy = c.fetchone()
+    conn.close()
+    ejercicio_hoy = res_hoy[0] if res_hoy else 0
     
-    # RESUMEN COMPACTO EJECUTIVO
-    estado_pago_actual = obtener_estado_pago()
-    alerta_html = "<span style='color: #2ECC71;'>🛡️ Al día</span>" if estado_pago_actual == 1 else "<span style='color: #E74C3C;'>⚠️ Pendiente</span>"
-    total_pendientes_hoy = contar_todos_los_pendientes()
-    estres_hoy = obtener_ultimo_estres()
+    with st.container(border=True):
+        st.markdown("<h4 style='margin-bottom:8px;'>🏃 Hábitos & Salud</h4>", unsafe_allow_html=True)
+        col_hab1, col_hab2 = st.columns([1.5, 1])
+        with col_hab1:
+            hizo_ejercicio = st.toggle("¡Hoy entrené!", value=bool(ejercicio_hoy), key="habito_ejercicio")
+            if hizo_ejercicio != bool(ejercicio_hoy):
+                guardar_salud(1 if hizo_ejercicio else 0, obtener_ultimo_estres())
+                st.rerun()
+        with col_hab2:
+            st.metric("Racha", f"{calcular_racha_ejercicio()} días")
+        
+        historial_emojis = obtener_historial_ejercicio_emojis()
+        st.markdown(f"**Historial:** {historial_emojis}")
+        
+    # 2. Tarjeta Calendario Dinámico
+    with st.container(border=True):
+        st.markdown("<h4 style='margin-bottom:8px;'>📅 Calendario Dinámico (Proyectos)</h4>", unsafe_allow_html=True)
+        tab_sem, tab_mes, tab_an = st.tabs(["Semana", "Mes", "Año"])
+        
+        eventos = obtener_eventos_calendario()
+        hoy = date.today()
+        
+        def filtrar_eventos(dias_max):
+            limite = hoy + timedelta(days=dias_max)
+            return [ev for ev in eventos if hoy.strftime("%Y-%m-%d") <= ev[2] <= limite.strftime("%Y-%m-%d")]
+        
+        with tab_sem:
+            evs = filtrar_eventos(7)
+            if evs:
+                for proj, tit, fec, tipo in evs:
+                    st.markdown(f"🔹 **{proj}** ({fec})<br>*{tipo}*: {tit}", unsafe_allow_html=True)
+            else:
+                st.caption("No hay hitos esta semana 🌿")
+                
+        with tab_mes:
+            evs = filtrar_eventos(30)
+            if evs:
+                for proj, tit, fec, tipo in evs:
+                    st.markdown(f"🔹 **{proj}** ({fec})<br>*{tipo}*: {tit}", unsafe_allow_html=True)
+            else:
+                st.caption("No hay hitos este mes 🌿")
+                
+        with tab_an:
+            evs = filtrar_eventos(365)
+            if evs:
+                for proj, tit, fec, tipo in evs:
+                    st.markdown(f"🔹 **{proj}** ({fec})<br>*{tipo}*: {tit}", unsafe_allow_html=True)
+            else:
+                st.caption("No hay hitos este año 🌿")
+        
+        with st.expander("➕ Registrar Hito de Proyecto"):
+            p_proj = st.selectbox("Proyecto:", ["💼 Alcaldía", "🌟 PMO Hub"])
+            p_tit = st.text_input("Título del Hito/Reunión:")
+            p_fec = st.date_input("Fecha:")
+            p_tipo = st.selectbox("Tipo:", ["Hito", "Reunión", "Entregable"])
+            if st.button("Guardar Evento"):
+                if p_tit:
+                    conn = sqlite3.connect('arya.db')
+                    c = conn.cursor()
+                    c.execute('INSERT INTO proyectos_eventos (proyecto, titulo, fecha, tipo) VALUES (?, ?, ?, ?)', (p_proj, p_tit, p_fec.strftime("%Y-%m-%d"), p_tipo))
+                    conn.commit()
+                    conn.close()
+                    st.success("¡Evento agendado!")
+                    st.rerun()
+
+    # 3. Tarjeta Diario Financiero
+    total_ing = obtener_total_ingresos()
+    saldo_lib = max(0, total_ing - 4050000)
+    presupuesto_diario = saldo_lib // 30
     
-    val_t1 = "$3.500.000" if not ocultar_saldos else "$ ***"
-    val_t2 = "$1.800.000" if not ocultar_saldos else "$ ***"
+    val_disp = f"${presupuesto_diario:,}" if not ocultar_saldos else "$ ***"
+    val_total = f"${saldo_lib:,}" if not ocultar_saldos else "$ ***"
     
-    st.markdown(f"""
-    <div class="dash-card">
-        <h4>💰 Fuel (Finanzas)</h4>
-        <p style='margin:4px 0;'>T1: {val_t1} | T2: {val_t2}</p>
-        <p style='margin:4px 0;'>Compromisos fijos: <b>{alerta_html}</b></p>
-    </div>
-    <div class="dash-card">
-        <h4>🌱 Core (Bienestar y Agenda)</h4>
-        <p style='margin:4px 0;'>Tareas activas: <b>{total_pendientes_hoy} pendientes</b></p>
-        <p style='margin:4px 0;'>Estrés hoy: <b>{estres_hoy}</b></p>
-    </div>
-    """, unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("<h4 style='margin-bottom:8px;'>💳 Diario Financiero</h4>", unsafe_allow_html=True)
+        st.metric(label="Presupuesto Diario Disponible", value=val_disp)
+        st.caption(f"Saldo de libertad mensual: {val_total}")
+
+    # 4. Tarjeta Tareas
+    pendientes_totales = contar_todos_los_pendientes()
+    conn = sqlite3.connect('arya.db')
+    c = conn.cursor()
+    c.execute('SELECT bloque, COUNT(*) FROM pendientes WHERE completada = 0 GROUP BY bloque')
+    agrupado = c.fetchall()
+    conn.close()
+    
+    with st.container(border=True):
+        st.markdown("<h4 style='margin-bottom:8px;'>📋 Tareas Activas</h4>", unsafe_allow_html=True)
+        col_t1, col_t2 = st.columns([1.2, 1])
+        with col_t1:
+            st.metric("Pendientes", f"{pendientes_totales}")
+        with col_t2:
+            st.caption("Frentes activos:")
+            if agrupado:
+                for bl, cnt in agrupado:
+                    st.markdown(f"- {bl}: **{cnt}**")
+            else:
+                st.markdown("✨ ¡Todo al día!")
 
 # ==========================================
 # VISTA: FUEL (FINANZAS AL DETALLE)
@@ -329,7 +491,7 @@ st.divider()
 # MENÚ INFERIOR ESTACIONARIO DE IMPACTO (Estilo Bancolombia App)
 col_m1, col_m2, col_m3, col_m4 = st.columns(4)
 with col_m1:
-    if st.button("⚡ Inicio"): st.session_state.menu_móvil = "⚡ Inicio"; st.rerun()
+    if st.button("🌿 Mi Día"): st.session_state.menu_móvil = "🌿 Mi Día"; st.rerun()
 with col_m2:
     if st.button("💰 Fuel"): st.session_state.menu_móvil = "💰 Fuel"; st.rerun()
 with col_m3:
