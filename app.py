@@ -362,10 +362,55 @@ if st.session_state.menu_móvil == "🌿 Mi Día":
 # ==========================================
 # VISTA:🚀 FINANZAS
 # ==========================================
+# ==========================================
+# VISTA: 🚀 FINANZAS (DISEÑO PREMIUM MINIMALISTA)
+# ==========================================
 elif st.session_state.menu_móvil == "🚀 Finanzas":
-    st.markdown("### 🚀 Finanzas Personales")
+    st.write("### 🚀 Control Financiero")
+    
+    # CSS de Acento para el módulo (Estilo Stripe)
+    st.markdown("""
+        <style>
+        .fin-card {
+            background-color: #FFFFFF;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid #EAEAEA;
+            margin-bottom: 8px;
+        }
+        .stButton>button {
+            background-color: #635BFF !important; /* Azul Stripe Premium */
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Indicadores Clave en Cuadrícula Compacta
+    f_col1, f_col2 = st.columns(2)
+    with f_col1:
+        with st.container(border=True):
+            st.markdown("<h4>📈 Ingresos Netos</h4>", unsafe_allow_html=True)
+            txt_ing = "$5,300,000" if not ocultar_saldos else "$ ***"
+            st.markdown(f"<span style='font-size:16px; font-weight:700; color:#1A1A1A;'>{txt_ing}</span>", unsafe_allow_html=True)
+            
+    with f_col2:
+        with st.container(border=True):
+            st.markdown("<h4>🛡️ Escudo Fijo</h4>", unsafe_allow_html=True)
+            txt_gasto = "$4,050,000" if not ocultar_saldos else "$ ***"
+            st.markdown(f"<span style='font-size:16px; font-weight:700; color:#666666;'>{txt_gasto}</span>", unsafe_allow_html=True)
+
+    # Contenedor del Simulador Exclusivo
     with st.container(border=True):
-        st.caption("Contenedor estratégico listo para tus flujos personales.")
+        st.markdown("<h4>📊 Simulador de Libertad</h4>", unsafe_allow_html=True)
+        st.caption("Proyección de excedentes mensuales:")
+        
+        # Lógica de cálculo directo en pantalla sin alterar bases de datos
+        total_ing = obtener_total_ingresos()
+        saldo_libertad = max(0, total_ing - 4050000)
+        txt_lib = f"${saldo_libertad:,}" if not ocultar_saldos else "$ ***"
+        
+        st.metric(label="Saldo de Libertad Mensual", value=txt_lib)
+        st.progress(min(1.0, saldo_libertad / 2000000) if total_ing > 4050000 else 0.0)
+        st.caption("🎯 Meta: Optimizar el 0.25% de comisiones operativas.")
 
 # ==========================================
 # VISTAS RESTANTES (MANTENIENDO LÓGICA)
