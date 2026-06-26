@@ -8,15 +8,18 @@ st.set_page_config(page_title="ARYA OS", page_icon="📱", layout="centered")
 st.markdown("""
     <style>
         .block-container {
-    max-width: 420px !important;
-    padding-top: 0.2rem !important; /* Espacio mínimo arriba */
-    padding-bottom: 4rem !important; 
-    padding-left: 0.8rem !important; /* Más espacio horizontal útil */
-    padding-right: 0.8rem !important;
-    margin: 0 auto !important;
-    background-color: #FFFFFF;
-    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
-    border-radius: 24px;
+        max-width: 420px !important;
+        padding-top: 0px !important; /* Forzado a cero */
+        margin-top: 0px !important;
+        padding-bottom: 4rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+    }
+    /* Eliminar el espacio muerto superior de Streamlit */
+    div[data-testid="stAppViewBlockContainer"] {
+        padding-top: 0px !important;
+        margin-top: 0px !important;
+    }
 }
         padding-bottom: 5rem !important; /* Espacio para el menú inferior */
         padding-left: 1.2rem !important;
