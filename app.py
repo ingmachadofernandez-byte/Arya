@@ -2,14 +2,22 @@ import streamlit as st
 import sqlite3
 from datetime import date, timedelta
 
-# 1. CONFIGURACIÓN PREMIUM OPTIMIZADA PARA MÓVIL (ESTILO BANCOLOMBIA)
+# 1. CONFIGURACIÓN PREMIUM OPTIMIZADA PARA MÓVIL
 st.set_page_config(page_title="ARYA OS", page_icon="📱", layout="centered")
 
 st.markdown("""
     <style>
-    .block-container {
-        max-width: 420px !important;
-        padding-top: 1.5rem !important;
+        .block-container {
+    max-width: 420px !important;
+    padding-top: 0.2rem !important; /* Espacio mínimo arriba */
+    padding-bottom: 4rem !important; 
+    padding-left: 0.8rem !important; /* Más espacio horizontal útil */
+    padding-right: 0.8rem !important;
+    margin: 0 auto !important;
+    background-color: #FFFFFF;
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+    border-radius: 24px;
+}
         padding-bottom: 5rem !important; /* Espacio para el menú inferior */
         padding-left: 1.2rem !important;
         padding-right: 1.2rem !important;
@@ -41,6 +49,47 @@ st.markdown("""
     
     /* Menú de Navegación Inferior Estacionario */
     .nav-box { display: flex; justify-content: space-around; background-color: #1A1A1A; padding: 10px 0; border-radius: 16px; margin-top: 20px; }
+    
+    /* Compactación premium para contenedores (tarjetas) en móvil */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        padding: 6px 8px !important;
+        margin-bottom: 4px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stVerticalBlock"] {
+        gap: 4px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] h4 {
+        font-size: 11px !important;
+        margin-bottom: 2px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetricValue"] {
+        font-size: 14px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stMetricLabel"] {
+        font-size: 9px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] button {
+        padding: 2px 6px !important;
+        font-size: 10px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] .stMarkdown, 
+    div[data-testid="stVerticalBlockBorderWrapper"] .stMarkdown p,
+    div[data-testid="stVerticalBlockBorderWrapper"] label,
+    div[data-testid="stVerticalBlockBorderWrapper"] span,
+    div[data-testid="stVerticalBlockBorderWrapper"] li {
+        font-size: 10px !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] .stTabs button p {
+        font-size: 10px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stExpander"] {
+        margin-top: 4px !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stExpander"] details summary span {
+        font-size: 10px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -174,7 +223,7 @@ def obtener_estado_pago():
     conn.close()
     return res[0] if res else 0
 
-def obtener_suenos():
+def obtener_su सपनों():
     conn = sqlite3.connect('arya.db')
     c = conn.cursor()
     c.execute("SELECT nombre FROM suenos")
@@ -278,140 +327,246 @@ def guardar_sabiduria(modulo, contenido):
     conn.commit()
     conn.close()
 
-def obtener_ultimo_aprendizaje():
-    conn = sqlite3.connect('arya.db')
-    c = conn.cursor()
-    c.execute("SELECT bloque, actividad FROM agenda WHERE bloque LIKE '%⛪%' OR bloque LIKE '%🙏%' OR ... ORDER BY id DESC LIMIT 1")
-    res = c.fetchone()
-    conn.close()
-    return res if res else ("Ninguno", "Aún no hay registros")
-
 # --- MANEJO DE ESTADO DE NAVEGACIÓN (BOTTOM BAR SIMULATION) ---
 if "menu_móvil" not in st.session_state:
-    st.session_state.menu_móvil = "🌿 Mi Día"
+    st.session_state.menu_móvil = "🌿 Hola Norma"
 
 # 3. INTERFAZ MÓVIL EVOLUCIONADA
 st.markdown("<h1>📱 ARYA OS</h1>", unsafe_allow_html=True)
 
-# GESTOR DE PRIVACIDAD (Estilo Bancolombia)
+# GESTOR DE PRIVACIDAD 
 ocultar_saldos = st.toggle("👁️ Ocultar saldos de pantalla", value=False)
 
 st.divider()
 
 # ==========================================
-# VISTA: INICIO (DASHBOARD COMPACTO)
+# VISTA: 🌿 MI DÍA
+# ==========================================
+# ==========================================
+# VISTA: 🌿 MI DÍA (REDISEÑO ULTRA COMPACTO UX)
+# ==========================================
+# ==========================================
+# VISTA: 🌿 MI DÍA (REDISEÑO ULTRA COMPACTO UX)
 # ==========================================
 if st.session_state.menu_móvil == "🌿 Mi Día":
     st.markdown("### Hola, Norma ✨")
-    st.caption("Tu control de hoy (Estilo Bancolombia):")
     
-    # 1. Tarjeta Hábitos
-    hoy_str = date.today().strftime("%Y-%m-%d")
-    conn = sqlite3.connect('arya.db')
-    c = conn.cursor()
-    c.execute('SELECT ejercicio FROM salud_control WHERE fecha = ?', (hoy_str,))
-    res_hoy = c.fetchone()
-    conn.close()
-    ejercicio_hoy = res_hoy[0] if res_hoy else 0
+    # CSS inyectado localmente para FORZAR a Streamlit a mantener las 2 columnas en móvil
+    st.markdown("""
+        <style>
+        [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 8px !important;
+        }
+        [data-testid="stHorizontalBlock"] [data-testid="column"] {
+            flex: 1 1 50% !important;
+            min-width: 0px !important;
+        }
+        .mini-card {
+            background-color: #F8F9FA;
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid #EAEAEA;
+            text-align: center;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # FILA 1: HÁBITOS Y CALENDARIO
+    row1_col1, row1_col2 = st.columns(2)
     
-    with st.container(border=True):
-        st.markdown("<h4 style='margin-bottom:8px;'>🏃 Hábitos & Salud</h4>", unsafe_allow_html=True)
-        col_hab1, col_hab2 = st.columns([1.5, 1])
-        with col_hab1:
-            hizo_ejercicio = st.toggle("¡Hoy entrené!", value=bool(ejercicio_hoy), key="habito_ejercicio")
+    with row1_col1:
+        hoy_str = date.today().strftime("%Y-%m-%d")
+        conn = sqlite3.connect('arya.db')
+        c = conn.cursor()
+        c.execute('SELECT ejercicio FROM salud_control WHERE fecha = ?', (hoy_str,))
+        res_hoy = c.fetchone()
+        conn.close()
+        ejercicio_hoy = res_hoy[0] if res_hoy else 0
+        
+        with st.container(border=True):
+            st.markdown("<h4>🏃 Hábitos</h4>", unsafe_allow_html=True)
+            hizo_ejercicio = st.toggle("¡Entrené!", value=bool(ejercicio_hoy), key="habito_ejercicio")
             if hizo_ejercicio != bool(ejercicio_hoy):
                 guardar_salud(1 if hizo_ejercicio else 0, obtener_ultimo_estres())
                 st.rerun()
-        with col_hab2:
-            st.metric("Racha", f"{calcular_racha_ejercicio()} días")
+            st.caption(f"Racha: {calcular_racha_ejercicio()} d")
+
+    with row1_col2:
+        with st.container(border=True):
+            st.markdown("<h4>📅 Agenda</h4>", unsafe_allow_html=True)
+            eventos = obtener_eventos_calendario()
+            hoy = date.today()
+            evs_sem = [ev for ev in eventos if hoy.strftime("%Y-%m-%d") <= ev[2] <= (hoy + timedelta(days=7)).strftime("%Y-%m-%d")]
+            
+            if evs_sem:
+                st.markdown(f"**Próximo:** {evs_sem[0][1][:15]}...")
+            else:
+                st.caption("Sin hitos esta sem.")
+
+    # FILA 2: DIARIO FINANCIERO Y TAREAS ACTIVAS
+    row2_col1, row2_col2 = st.columns(2)
+    
+    with row2_col1:
+        total_ing = obtener_total_ingresos()
+        saldo_lib = max(0, total_ing - 4050000)
+        presupuesto_diario = saldo_lib // 30
+        val_disp = f"${presupuesto_diario:,}" if not ocultar_saldos else "$ ***"
         
-        historial_emojis = obtener_historial_ejercicio_emojis()
-        st.markdown(f"**Historial:** {historial_emojis}")
-        
-    # 2. Tarjeta Calendario Dinámico
-    with st.container(border=True):
-        st.markdown("<h4 style='margin-bottom:8px;'>📅 Calendario Dinámico (Proyectos)</h4>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown("<h4>💳 Diario</h4>", unsafe_allow_html=True)
+            st.metric(label="Disponible", value=val_disp)
+
+    with row2_col2:
+        pendientes_totales = contar_todos_los_pendientes()
+        with st.container(border=True):
+            st.markdown("<h4>📋 Tareas</h4>", unsafe_allow_html=True)
+            st.metric(label="Pendientes", value=f"{pendientes_totales}")
+
+    # SECCIÓN INFERIOR COLAPSABLE: Para no ocupar espacio en pantalla por defecto
+    st.markdown("---")
+    with st.expander("🔍 Ver Detalles del Calendario Completo"):
         tab_sem, tab_mes, tab_an = st.tabs(["Semana", "Mes", "Año"])
-        
-        eventos = obtener_eventos_calendario()
-        hoy = date.today()
-        
-        def filtrar_eventos(dias_max):
-            limite = hoy + timedelta(days=dias_max)
-            return [ev for ev in eventos if hoy.strftime("%Y-%m-%d") <= ev[2] <= limite.strftime("%Y-%m-%d")]
-        
+        # ... (Aquí va la misma lógica de los tabs que ya tenías para revisar a fondo si lo deseas)
         with tab_sem:
-            evs = filtrar_eventos(7)
-            if evs:
-                for proj, tit, fec, tipo in evs:
-                    st.markdown(f"🔹 **{proj}** ({fec})<br>*{tipo}*: {tit}", unsafe_allow_html=True)
-            else:
-                st.caption("No hay hitos esta semana 🌿")
-                
+            if evs_sem:
+                for proj, tit, fec, tipo in evs_sem: st.markdown(f"🔹 **{proj}**: {tit} ({fec})")
         with tab_mes:
-            evs = filtrar_eventos(30)
-            if evs:
-                for proj, tit, fec, tipo in evs:
-                    st.markdown(f"🔹 **{proj}** ({fec})<br>*{tipo}*: {tit}", unsafe_allow_html=True)
-            else:
-                st.caption("No hay hitos este mes 🌿")
-                
+            evs_mes = [ev for ev in eventos if hoy.strftime("%Y-%m-%d") <= ev[2] <= (hoy + timedelta(days=30)).strftime("%Y-%m-%d")]
+            for proj, tit, fec, tipo in evs_mes: st.markdown(f"🔹 **{proj}**: {tit} ({fec})")
         with tab_an:
-            evs = filtrar_eventos(365)
-            if evs:
-                for proj, tit, fec, tipo in evs:
-                    st.markdown(f"🔹 **{proj}** ({fec})<br>*{tipo}*: {tit}", unsafe_allow_html=True)
-            else:
-                st.caption("No hay hitos este año 🌿")
+            for proj, tit, fec, tipo in eventos[:5]: st.markdown(f"🔹 **{proj}**: {tit} ({fec})")
+    # FILA 2: DIARIO FINANCIERO Y TAREAS ACTIVAS
+    row2_col1, row2_col2 = st.columns(2)
+    
+    with row2_col1:
+        total_ing = obtener_total_ingresos()
+        saldo_lib = max(0, total_ing - 4050000)
+        presupuesto_diario = saldo_lib // 30
+        val_disp = f"${presupuesto_diario:,}" if not ocultar_saldos else "$ ***"
         
-        with st.expander("➕ Registrar Hito de Proyecto"):
-            p_proj = st.selectbox("Proyecto:", ["💼 Alcaldía", "🌟 PMO Hub"])
-            p_tit = st.text_input("Título del Hito/Reunión:")
-            p_fec = st.date_input("Fecha:")
-            p_tipo = st.selectbox("Tipo:", ["Hito", "Reunión", "Entregable"])
-            if st.button("Guardar Evento"):
-                if p_tit:
-                    conn = sqlite3.connect('arya.db')
-                    c = conn.cursor()
-                    c.execute('INSERT INTO proyectos_eventos (proyecto, titulo, fecha, tipo) VALUES (?, ?, ?, ?)', (p_proj, p_tit, p_fec.strftime("%Y-%m-%d"), p_tipo))
-                    conn.commit()
-                    conn.close()
-                    st.success("¡Evento agendado!")
-                    st.rerun()
+        with st.container(border=True):
+            st.markdown("<h4>💳 Diario</h4>", unsafe_allow_html=True)
+            st.metric(label="Disponible", value=val_disp)
 
-    # 3. Tarjeta Diario Financiero
-    total_ing = obtener_total_ingresos()
-    saldo_lib = max(0, total_ing - 4050000)
-    presupuesto_diario = saldo_lib // 30
-    
-    val_disp = f"${presupuesto_diario:,}" if not ocultar_saldos else "$ ***"
-    val_total = f"${saldo_lib:,}" if not ocultar_saldos else "$ ***"
-    
-    with st.container(border=True):
-        st.markdown("<h4 style='margin-bottom:8px;'>💳 Diario Financiero</h4>", unsafe_allow_html=True)
-        st.metric(label="Presupuesto Diario Disponible", value=val_disp)
-        st.caption(f"Saldo de libertad mensual: {val_total}")
+    with row2_col2:
+        pendientes_totales = contar_todos_los_pendientes()
+        with st.container(border=True):
+            st.markdown("<h4>📋 Tareas</h4>", unsafe_allow_html=True)
+            st.metric(label="Pendientes", value=f"{pendientes_totales}")
 
-    # 4. Tarjeta Tareas
-    pendientes_totales = contar_todos_los_pendientes()
-    conn = sqlite3.connect('arya.db')
-    c = conn.cursor()
-    c.execute('SELECT bloque, COUNT(*) FROM pendientes WHERE completada = 0 GROUP BY bloque')
-    agrupado = c.fetchall()
-    conn.close()
+    # SECCIÓN INFERIOR COLAPSABLE: Para no ocupar espacio en pantalla por defecto
+    st.markdown("---")
+    with st.expander("🔍 Ver Detalles del Calendario Completo"):
+        tab_sem, tab_mes, tab_an = st.tabs(["Semana", "Mes", "Año"])
+        # ... (Aquí va la misma lógica de los tabs que ya tenías para revisar a fondo si lo deseas)
+        with tab_sem:
+            if evs_sem:
+                for proj, tit, fec, tipo in evs_sem: st.markdown(f"🔹 **{proj}**: {tit} ({fec})")
+        with tab_mes:
+            evs_mes = [ev for ev in eventos if hoy.strftime("%Y-%m-%d") <= ev[2] <= (hoy + timedelta(days=30)).strftime("%Y-%m-%d")]
+            for proj, tit, fec, tipo in evs_mes: st.markdown(f"🔹 **{proj}**: {tit} ({fec})")
+        with tab_an:
+            for proj, tit, fec, tipo in eventos[:5]: st.markdown(f"🔹 **{proj}**: {tit} ({fec})")
+            
+    with row1_col2:
+        # 2. Tarjeta Calendario Dinámico
+        with st.container(border=True):
+            st.markdown("<h4 style='margin-bottom:8px;'>📅 Calendario</h4>", unsafe_allow_html=True)
+            tab_sem, tab_mes, tab_an = st.tabs(["Sem", "Mes", "Año"])
+            
+            eventos = obtener_eventos_calendario()
+            hoy = date.today()
+            
+            def filtrar_eventos(dias_max):
+                limite = hoy + timedelta(days=dias_max)
+                return [ev for ev in eventos if hoy.strftime("%Y-%m-%d") <= ev[2] <= limite.strftime("%Y-%m-%d")]
+            
+            with tab_sem:
+                evs = filtrar_eventos(7)
+                if evs:
+                    for proj, tit, fec, tipo in evs[:2]: # Acortado para empaquetado UX
+                        st.markdown(f"🔹 **{proj[:6]}** ({fec[-5:]})<br>{tit[:20]}...", unsafe_allow_html=True)
+                else:
+                    st.caption("Sin hitos 🌿")
+                    
+            with tab_mes:
+                evs = filtrar_eventos(30)
+                if evs:
+                    for proj, tit, fec, tipo in evs[:2]:
+                        st.markdown(f"🔹 **{proj[:6]}** ({fec[-5:]})<br>{tit[:20]}...", unsafe_allow_html=True)
+                else:
+                    st.caption("Sin hitos 🌿")
+                    
+            with tab_an:
+                evs = filtrar_eventos(365)
+                if evs:
+                    for proj, tit, fec, tipo in evs[:2]:
+                        st.markdown(f"🔹 **{proj[:6]}** ({fec[-5:]})<br>{tit[:20]}...", unsafe_allow_html=True)
+                else:
+                    st.caption("Sin hitos 🌿")
+            
+            with st.expander("➕ Registrar"):
+                p_proj = st.selectbox("Proyecto:", ["💼 Alcaldía", "🌟 PMO Hub"])
+                p_tit = st.text_input("Título:")
+                p_fec = st.date_input("Fecha:")
+                p_tipo = st.selectbox("Tipo:", ["Hito", "Reunión", "Entregable"])
+                if st.button("Guardar"):
+                    if p_tit:
+                        conn = sqlite3.connect('arya.db')
+                        c = conn.cursor()
+                        c.execute('INSERT INTO proyectos_eventos (proyecto, titulo, fecha, tipo) VALUES (?, ?, ?, ?)', (p_proj, p_tit, p_fec.strftime("%Y-%m-%d"), p_tipo))
+                        conn.commit()
+                        conn.close()
+                        st.success("¡Agendado!")
+                        st.rerun()
+
+    # Segunda fila de la cuadrícula 2x2
+    row2_col1, row2_col2 = st.columns([1, 1])
     
+    with row2_col1:
+        # 3. Tarjeta Diario Financiero
+        total_ing = obtener_total_ingresos()
+        saldo_lib = max(0, total_ing - 4050000)
+        presupuesto_diario = saldo_lib // 30
+        
+        val_disp = f"${presupuesto_diario:,}" if not ocultar_saldos else "$ ***"
+        val_total = f"${saldo_lib:,}" if not ocultar_saldos else "$ ***"
+        
+        with st.container(border=True):
+            st.markdown("<h4 style='margin-bottom:8px;'>💳 Diario Financiero</h4>", unsafe_allow_html=True)
+            st.metric(label="Presupuesto Diario", value=val_disp)
+            st.caption(f"Libertad: {val_total}")
+
+    with row2_col2:
+        # 4. Tarjeta Tareas Activas
+        pendientes_totales = contar_todos_los_pendientes()
+        conn = sqlite3.connect('arya.db')
+        c = conn.cursor()
+        c.execute('SELECT bloque, COUNT(*) FROM pendientes WHERE completada = 0 GROUP BY bloque')
+        agrupado = c.fetchall()
+        conn.close()
+        
+        with st.container(border=True):
+            st.markdown("<h4 style='margin-bottom:8px;'>📋 Tareas Activas</h4>", unsafe_allow_html=True)
+            col_t1, col_t2 = st.columns([1.1, 1])
+            with col_t1:
+                st.metric("Pendientes", f"{pendientes_totales}")
+            with col_t2:
+                if agrupado:
+                    for bl, cnt in agrupado[:2]:
+                        st.markdown(f"**{bl[:5]}**: {cnt}")
+                else:
+                    st.markdown("✨ Al día")
+
+# ==========================================
+# VISTA: FINANZAS (ESTRUCTURA BASE REQUERIDA)
+# ==========================================
+elif st.session_state.menu_móvil == "🚀 Finanzas":
+    st.markdown("### 🚀 Finanzas Personales")
     with st.container(border=True):
-        st.markdown("<h4 style='margin-bottom:8px;'>📋 Tareas Activas</h4>", unsafe_allow_html=True)
-        col_t1, col_t2 = st.columns([1.2, 1])
-        with col_t1:
-            st.metric("Pendientes", f"{pendientes_totales}")
-        with col_t2:
-            st.caption("Frentes activos:")
-            if agrupado:
-                for bl, cnt in agrupado:
-                    st.markdown(f"- {bl}: **{cnt}**")
-            else:
-                st.markdown("✨ ¡Todo al día!")
+        st.caption("Contenedor estratégico listo para el diseño de tus flujos de caja personales.")
 
 # ==========================================
 # VISTA: FUEL (FINANZAS AL DETALLE)
@@ -439,12 +594,6 @@ elif st.session_state.menu_móvil == "💰 Fuel":
         saldo_libertad = total_ingresos - 4050000
         txt_saldo = f"${saldo_libertad:,}" if not ocultar_saldos else "$ ***"
         st.markdown(f"<h3 style='text-align:center;'>💸 Saldo Libertad: <span style='color:#4A90E2;'>{txt_saldo}</span></h3>", unsafe_allow_html=True)
-        
-        with st.expander("✈️ Mi Banco de Sueños"):
-            lista_suenos = obtener_suenos()
-            if lista_suenos:
-                for sueno in lista_suenos:
-                    st.caption(f"🎯 {sueno} (Asignado dinámicamente)")
 
 # ==========================================
 # VISTA: CORE (GESTIÓN DIARIA)
@@ -488,15 +637,17 @@ elif st.session_state.menu_móvil == "✨ Anchor":
 
 st.divider()
 
-# MENÚ INFERIOR ESTACIONARIO DE IMPACTO (Estilo Bancolombia App)
-col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+# MENÚ INFERIOR ESTACIONARIO DE IMPACTO 
+col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
 with col_m1:
     if st.button("🌿 Mi Día"): st.session_state.menu_móvil = "🌿 Mi Día"; st.rerun()
 with col_m2:
     if st.button("💰 Fuel"): st.session_state.menu_móvil = "💰 Fuel"; st.rerun()
 with col_m3:
-    if st.button("🌱 Core"): st.session_state.menu_móvil = "🌱 Core"; st.rerun()
+    if st.button("🚀 Finanzas"): st.session_state.menu_móvil = "🚀 Finanzas"; st.rerun()
 with col_m4:
+    if st.button("🌱 Core"): st.session_state.menu_móvil = "🌱 Core"; st.rerun()
+with col_m5:
     if st.button("✨ Anchor"): st.session_state.menu_móvil = "✨ Anchor"; st.rerun()
 
-# Despliegue UX Bancolombia
+# Despliegue UX Bancolombia exitoso
